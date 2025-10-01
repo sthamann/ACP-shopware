@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/shopware/shopware/trunk/src/Core/System/SystemConfig/Schema/config.xsd">
+
+    <card>
+        <title>ACP Configuration</title>
+        <title lang="de-DE">ACP Konfiguration</title>
+
+        <input-field>
+            <name>demoMode</name>
+            <label>Demo Mode</label>
+            <label lang="de-DE">Demo Modus</label>
+            <helpText>Enable demo mode to use dummy payment tokens. Disable for real PayPal integration.</helpText>
+            <helpText lang="de-DE">Aktiviere Demo-Modus für Dummy Payment Tokens. Deaktiviere für echte PayPal Integration.</helpText>
+            <defaultValue>true</defaultValue>
+        </input-field>
+
+        <input-field type="single-select">
+            <name>paymentMode</name>
+            <label>Payment Mode</label>
+            <label lang="de-DE">Payment Modus</label>
+            <options>
+                <option>
+                    <id>demo</id>
+                    <name>Demo (No real payments)</name>
+                    <name lang="de-DE">Demo (Keine echten Zahlungen)</name>
+                </option>
+                <option>
+                    <id>paypal</id>
+                    <name>PayPal ACDC (Requires SwagPayPal)</name>
+                    <name lang="de-DE">PayPal ACDC (Benötigt SwagPayPal)</name>
+                </option>
+            </options>
+            <defaultValue>demo</defaultValue>
+        </input-field>
+    </card>
+
+</config>
+

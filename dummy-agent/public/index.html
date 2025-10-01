@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT - ACP Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-left">
+                <button class="menu-btn">☰</button>
+                <span class="chat-title">ChatGPT <span class="version">5</span></span>
+            </div>
+            <div class="header-right">
+                <button class="new-chat-btn">✏️</button>
+                <button class="more-btn">⋯</button>
+            </div>
+        </div>
+
+        <!-- Messages Container -->
+        <div id="messages" class="messages-container"></div>
+
+        <!-- Input Area -->
+        <div class="input-container">
+            <div class="input-wrapper">
+                <button class="attach-btn">➕</button>
+                <input 
+                    type="text" 
+                    id="userInput" 
+                    placeholder="Ask anything" 
+                    class="message-input"
+                />
+                <button class="voice-btn">🎤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Card Modal (hidden by default) -->
+    <div id="productModal" class="product-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-btn" onclick="closeProductModal()">←</button>
+                <button class="close-btn" onclick="closeProductModal()">✕</button>
+            </div>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="checkout-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button class="back-btn" onclick="closeCheckoutModal()">←</button>
+                <span class="modal-title">Checkout</span>
+            </div>
+            <div id="checkoutBody"></div>
+        </div>
+    </div>
+
+    <!-- Payment Completion Modal -->
+    <div id="completionModal" class="completion-modal" style="display: none;">
+        <div class="modal-content">
+            <div id="completionBody"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+

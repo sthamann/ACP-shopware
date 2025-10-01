@@ -1,0 +1,33 @@
+{
+    "name": "acp/shopware-plugin",
+    "description": "Shopware 6 plugin for integrating with Agentic Commerce Protocol (ACP)",
+    "type": "shopware-platform-plugin",
+    "version": "0.2.0",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Acp\\ShopwarePlugin\\": "src/"
+        }
+    },
+    "require": {
+        "shopware/core": "~6.5.0 || ~6.6.0 || ~6.7.0"
+    },
+    "suggest": {
+        "swag/paypal": "For PayPal payment integration"
+    },
+    "extra": {
+        "shopware-plugin-class": "Acp\\ShopwarePlugin\\AcpShopwarePlugin",
+        "label": {
+            "de-DE": "ACP Integration mit PayPal",
+            "en-GB": "ACP Integration with PayPal"
+        },
+        "description": {
+            "de-DE": "Integration mit dem Agentic Commerce Protocol inkl. PayPal Vault",
+            "en-GB": "Integration with Agentic Commerce Protocol incl. PayPal Vault"
+        },
+        "manufacturer": "ACP",
+        "copyright": "ACP",
+        "license": "MIT",
+        "author": "ACP Team"
+    }
+}

@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
+
+    <services>
+        <service id="Acp\ShopwarePlugin\Controller\CheckoutSessionController">
+            <argument type="service" id="Acp\ShopwarePlugin\Service\CheckoutSessionService"/>
+            <argument type="service" id="acp_checkout_session.repository"/>
+            <call method="setContainer">
+                <argument type="service" id="service_container"/>
+            </call>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Controller\DelegatePaymentController">
+            <argument type="service" id="Acp\ShopwarePlugin\Service\PaymentTokenService"/>
+            <call method="setContainer">
+                <argument type="service" id="service_container"/>
+            </call>
+            <tag name="controller.service_arguments"/>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Service\CheckoutSessionService">
+            <argument type="service" id="Shopware\Core\Checkout\Cart\SalesChannel\CartService"/>
+            <argument type="service" id="product.repository"/>
+            <argument type="service" id="Shopware\Core\Checkout\Cart\Order\OrderConverter"/>
+            <argument type="service" id="Shopware\Core\Checkout\Cart\Order\OrderPersister"/>
+            <argument type="service" id="payment_method.repository"/>
+            <argument type="service" id="shipping_method.repository"/>
+            <argument type="service" id="sales_channel.repository"/>
+            <argument type="service" id="Shopware\Core\System\SalesChannel\Context\CachedSalesChannelContextFactory"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <argument type="service" id="country.repository"/>
+            <argument type="service" id="customer.repository"/>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Service\PaymentTokenService">
+            <argument type="service" id="payment_method.repository"/>
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
+            <argument type="service" id="swag_paypal_vault_token.repository" on-invalid="null"/>
+            <argument type="service" id="acp_payment_token.repository"/>
+            <argument type="service" id="customer.repository" on-invalid="null"/>
+            <argument type="service" id="Swag\PayPal\Checkout\Payment\Service\VaultTokenService" on-invalid="null"/>
+            <argument type="service" id="Swag\PayPal\RestApi\RequestService" on-invalid="null"/>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Core\Content\CheckoutSession\CheckoutSessionDefinition">
+            <tag name="shopware.entity.definition" entity="acp_checkout_session"/>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Core\Content\PaymentToken\PaymentTokenDefinition">
+            <tag name="shopware.entity.definition" entity="acp_payment_token"/>
+        </service>
+    </services>
+
+</container>
