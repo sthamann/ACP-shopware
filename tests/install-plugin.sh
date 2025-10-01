@@ -8,7 +8,7 @@ set -e  # Exit on error
 CONTAINER_NAME="shopware-acp"
 PLUGIN_NAME="AcpShopwarePlugin"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PLUGIN_DIR="$PROJECT_ROOT/shopware-acp-plugin"
 
 # Colors
@@ -45,8 +45,8 @@ echo ""
 
 # Step 2: Set correct permissions
 echo -e "${BLUE}[2/8] Setting permissions...${NC}"
-docker exec "${CONTAINER_NAME}" chown -R www-data:www-data /var/www/html/custom/plugins/${PLUGIN_NAME}
-docker exec "${CONTAINER_NAME}" chmod -R 755 /var/www/html/custom/plugins/${PLUGIN_NAME}
+docker exec -u root "${CONTAINER_NAME}" chown -R www-data:www-data /var/www/html/custom/plugins/${PLUGIN_NAME}
+docker exec -u root "${CONTAINER_NAME}" chmod -R 755 /var/www/html/custom/plugins/${PLUGIN_NAME}
 
 echo -e "${GREEN}✓ Permissions set${NC}"
 echo ""
