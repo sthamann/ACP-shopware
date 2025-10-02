@@ -11,9 +11,11 @@ class CheckoutSessionEntity extends Entity
 
     protected string $cartToken;
     protected string $salesChannelId;
+    protected ?string $customerId = null;
     protected string $status;
     protected string $data;
     protected ?string $orderId = null;
+    protected ?string $paymentStatus = null;
 
     public function getCartToken(): string
     {
@@ -33,6 +35,16 @@ class CheckoutSessionEntity extends Entity
     public function setSalesChannelId(string $salesChannelId): void
     {
         $this->salesChannelId = $salesChannelId;
+    }
+
+    public function getCustomerId(): ?string
+    {
+        return $this->customerId;
+    }
+
+    public function setCustomerId(?string $customerId): void
+    {
+        $this->customerId = $customerId;
     }
 
     public function getStatus(): string
@@ -63,5 +75,15 @@ class CheckoutSessionEntity extends Entity
     public function setOrderId(?string $orderId): void
     {
         $this->orderId = $orderId;
+    }
+
+    public function getPaymentStatus(): ?string
+    {
+        return $this->paymentStatus;
+    }
+
+    public function setPaymentStatus(?string $paymentStatus): void
+    {
+        $this->paymentStatus = $paymentStatus;
     }
 }

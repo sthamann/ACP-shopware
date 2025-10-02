@@ -346,6 +346,8 @@ async function processCheckout() {
     button.disabled = true;
     button.textContent = 'Processing...';
     
+    let provider = 'paypal'; // Default provider
+    
     try {
         const address = {
             name: document.getElementById('addressName').value,
@@ -377,18 +379,24 @@ async function processCheckout() {
             throw new Error('Payment token creation failed: ' + JSON.stringify(tokenData.error));
         }
         
-        paymentToken = tokenData.id;
-        console.log('✅ Payment token created:', paymentToken);
-        console.log('   Token metadata:', tokenData.metadata);
+        paymentToken = tokenData.external_token; // Use the external token
+        provider = tokenData.provider || 'paypal'; // Store the provider (paypal, etc.)
+        console.log('✅ Payment token registered:', paymentToken);
+        console.log('   Provider:', provider);
+        console.log('   Token ID:', tokenData.id);
         
         // Step 2: Create checkout session via REAL Shopware ACP API
-        console.log('🔄 Step 2: Creating checkout session...');
+        console.log('🔄 Step 2: Creating checkout session with buyer data...');
         const sessionResponse = await fetch('/api/agent/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 items: cart.map(item => ({ id: item.id, quantity: item.quantity })),
-                fulfillmentAddress: address
+                fulfillmentAddress: address,
+                buyer: {
+                    email: 'customer@example.com',
+                    name: document.getElementById('addressName').value
+                }
             })
         });
         
@@ -411,7 +419,7 @@ async function processCheckout() {
         
         const buyer = {
             first_name: address.name.split(' ')[0] || 'Demo',
-            last_name: address.name.split(' ')[1] || 'User',
+            last_name: address.name.split(' ').slice(1).join(' ') || 'User',
             email: 'demo@example.com',
             phone_number: '+11234567890'
         };
@@ -422,7 +430,7 @@ async function processCheckout() {
             body: JSON.stringify({
                 sessionId: currentSession,
                 buyer: buyer,
-                paymentToken: paymentToken
+                paymentToken: paymentToken // Provider determined automatically from token
             })
         });
         

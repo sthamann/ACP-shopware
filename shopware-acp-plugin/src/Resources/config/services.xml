@@ -8,6 +8,7 @@
         <service id="Acp\ShopwarePlugin\Controller\CheckoutSessionController">
             <argument type="service" id="Acp\ShopwarePlugin\Service\CheckoutSessionService"/>
             <argument type="service" id="acp_checkout_session.repository"/>
+            <argument type="service" id="Acp\ShopwarePlugin\Service\AcpComplianceService"/>
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>
@@ -16,6 +17,7 @@
 
         <service id="Acp\ShopwarePlugin\Controller\DelegatePaymentController">
             <argument type="service" id="Acp\ShopwarePlugin\Service\PaymentTokenService"/>
+            <argument type="service" id="Acp\ShopwarePlugin\Service\AcpComplianceService"/>
             <call method="setContainer">
                 <argument type="service" id="service_container"/>
             </call>
@@ -34,24 +36,38 @@
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
             <argument type="service" id="country.repository"/>
             <argument type="service" id="customer.repository"/>
+            <argument type="service" id="acp_checkout_session.repository"/>
+            <argument type="service" id="Acp\ShopwarePlugin\Service\PaymentTokenService"/>
+            <argument type="service" id="order.repository"/>
+            <argument type="service" id="Acp\ShopwarePlugin\Service\WebhookService"/>
+            <argument type="service" id="Shopware\Core\Checkout\Payment\Cart\PaymentHandler\PaymentHandlerRegistry" on-invalid="null"/>
         </service>
 
         <service id="Acp\ShopwarePlugin\Service\PaymentTokenService">
+            <argument type="service" id="acp_external_token.repository"/>
             <argument type="service" id="payment_method.repository"/>
             <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
-            <argument type="service" id="swag_paypal_vault_token.repository" on-invalid="null"/>
-            <argument type="service" id="acp_payment_token.repository"/>
-            <argument type="service" id="customer.repository" on-invalid="null"/>
-            <argument type="service" id="Swag\PayPal\Checkout\Payment\Service\VaultTokenService" on-invalid="null"/>
-            <argument type="service" id="Swag\PayPal\RestApi\RequestService" on-invalid="null"/>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Service\AcpComplianceService">
+            <argument type="service" id="acp_idempotency_key.repository"/>
+            <argument type="string">default-secret</argument>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Service\WebhookService">
+            <argument type="service" id="Shopware\Core\System\SystemConfig\SystemConfigService"/>
         </service>
 
         <service id="Acp\ShopwarePlugin\Core\Content\CheckoutSession\CheckoutSessionDefinition">
             <tag name="shopware.entity.definition" entity="acp_checkout_session"/>
         </service>
 
-        <service id="Acp\ShopwarePlugin\Core\Content\PaymentToken\PaymentTokenDefinition">
-            <tag name="shopware.entity.definition" entity="acp_payment_token"/>
+        <service id="Acp\ShopwarePlugin\Core\Content\ExternalToken\ExternalTokenDefinition">
+            <tag name="shopware.entity.definition" entity="acp_external_token"/>
+        </service>
+
+        <service id="Acp\ShopwarePlugin\Core\Content\IdempotencyKey\IdempotencyKeyDefinition">
+            <tag name="shopware.entity.definition" entity="acp_idempotency_key"/>
         </service>
     </services>
 

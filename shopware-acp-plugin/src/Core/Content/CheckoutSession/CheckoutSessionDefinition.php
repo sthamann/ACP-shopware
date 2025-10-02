@@ -32,9 +32,11 @@ class CheckoutSessionDefinition extends EntityDefinition
             (new IdField('id', 'id'))->addFlags(new PrimaryKey(), new Required()),
             (new StringField('cart_token', 'cartToken'))->addFlags(new Required()),
             (new FkField('sales_channel_id', 'salesChannelId', 'sales_channel'))->addFlags(new Required()),
+            new FkField('customer_id', 'customerId', 'customer'),
             (new StringField('status', 'status'))->addFlags(new Required()),
             (new LongTextField('data', 'data'))->addFlags(new Required()),
             new FkField('order_id', 'orderId', 'order'),
+            new StringField('payment_status', 'paymentStatus'),
             new DateTimeField('created_at', 'createdAt'),
             new DateTimeField('updated_at', 'updatedAt'),
         ]);

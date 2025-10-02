@@ -115,26 +115,64 @@ app.get('/api/agent/products', async (req, res) => {
     }
 });
 
-// Create payment token
+// Create payment token - CORRECT ACP FLOW: PSP creates token, then delegate to merchant
 app.post('/api/agent/create-payment-token', async (req, res) => {
     try {
         const token = await getAccessToken();
-        
-        const { cardNumber, expMonth, expYear, cvc, cardBrand, checkoutSessionId } = req.body;
-        
-        const paymentData = {
+
+        const { cardNumber, expMonth, expYear, cvc, cardBrand, checkoutSessionId, provider = 'paypal' } = req.body;
+
+        // Step 1: Create token at PSP (simulated by our pseudo PSP service)
+        console.log(`🎯 Creating token at ${provider} PSP...`);
+        const pspResponse = await axios.post(
+            `http://localhost:3001/api/psp/${provider}/vault`,
+            {
+                payment_method: {
+                    type: 'card',
+                    card_number_type: 'fpan',
+                    number: cardNumber,
+                    exp_month: expMonth,
+                    exp_year: expYear,
+                    name: 'Demo User',
+                    cvc: cvc,
+                    display_card_funding_type: 'credit',
+                    display_brand: cardBrand || 'visa',
+                    display_last4: cardNumber.slice(-4),
+                    metadata: { provider: provider, source: 'dummy_agent' }
+                },
+                allowance: {
+                    reason: 'one_time',
+                    max_amount: 100000,
+                    currency: 'eur',
+                    checkout_session_id: checkoutSessionId,
+                    merchant_id: 'dummy_agent',
+                    expires_at: new Date(Date.now() + 3600000).toISOString()
+                }
+            },
+            {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log(`✅ PSP ${provider} created token:`, pspResponse.data.id);
+
+        // Step 2: Delegate the PSP-created token to Shopware for storage
+        console.log('🔄 Delegating PSP token to Shopware...');
+        const delegateData = {
             payment_method: {
                 type: 'card',
                 card_number_type: 'fpan',
-                virtual: false,
                 number: cardNumber,
                 exp_month: expMonth,
                 exp_year: expYear,
+                name: 'Demo User',
                 cvc: cvc,
                 display_card_funding_type: 'credit',
                 display_brand: cardBrand || 'visa',
                 display_last4: cardNumber.slice(-4),
-                metadata: {}
+                metadata: { provider: provider, source: 'dummy_agent' }
             },
             allowance: {
                 reason: 'one_time',
@@ -145,45 +183,66 @@ app.post('/api/agent/create-payment-token', async (req, res) => {
                 expires_at: new Date(Date.now() + 3600000).toISOString()
             },
             risk_signals: [
-                { type: 'card_testing', score: 5, action: 'authorized' }
+                {
+                    type: 'card_testing',
+                    score: 5,
+                    action: 'authorized'
+                }
             ],
             metadata: {
                 source: 'dummy_agent_chat',
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
+                card_last4: cardNumber.slice(-4),
+                card_brand: cardBrand || 'visa',
+                psp_token: pspResponse.data.id // Reference to PSP-created token
             }
         };
 
-        const response = await axios.post(
+        const delegateResponse = await axios.post(
             `${SHOPWARE_URL}/api/agentic_commerce/delegate_payment`,
-            paymentData,
+            delegateData,
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'API-Version': API_VERSION,
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token}`,
+                    'API-Version': API_VERSION
                 }
             }
         );
 
-        res.json(response.data);
+        console.log('✅ Shopware stored delegated token:', delegateResponse.data.id);
+
+        // Return the Shopware token info (ACP spec compliant)
+        res.json({
+            id: delegateResponse.data.id,
+            created: delegateResponse.data.created,
+            metadata: delegateResponse.data.metadata,
+            psp_token: pspResponse.data.id, // For debugging
+            provider: provider
+        });
     } catch (error) {
-        console.error('Error creating payment token:', error.response?.data || error.message);
+        console.error('Error in payment token flow:', error.response?.data || error.message);
         res.status(error.response?.status || 500).json({
             error: error.response?.data || { message: error.message }
         });
     }
 });
 
-// Create checkout session
+// Create checkout session - Now includes buyer data for early customer creation
 app.post('/api/agent/checkout', async (req, res) => {
     try {
         const token = await getAccessToken();
         
-        const { items, fulfillmentAddress } = req.body;
+        const { items, fulfillmentAddress, buyer } = req.body;
         
+        // Include buyer data in session creation for early customer creation
         const sessionData = {
             items: items,
-            fulfillment_address: fulfillmentAddress
+            fulfillment_address: fulfillmentAddress,
+            buyer: buyer || {
+                email: 'customer@example.com',
+                name: 'Demo Customer'
+            }
         };
 
         const response = await axios.post(
@@ -207,18 +266,18 @@ app.post('/api/agent/checkout', async (req, res) => {
     }
 });
 
-// Complete checkout
+// Complete checkout - Uses ACP token ID (provider determined automatically by backend)
 app.post('/api/agent/complete-checkout', async (req, res) => {
     try {
         const token = await getAccessToken();
         
         const { sessionId, buyer, paymentToken } = req.body;
-        
+
+        // Provider is now determined automatically from the token by the backend
         const completeData = {
             buyer: buyer,
             payment_data: {
-                token: paymentToken,
-                provider: 'shopware'
+                token: paymentToken // This is the ACP token ID (not the external PSP token)
             }
         };
 

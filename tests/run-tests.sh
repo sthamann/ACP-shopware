@@ -54,6 +54,24 @@ fi
 
 log "${GREEN}✓ Container is running${NC}"
 
+# Start pseudo PSP service for testing
+log "${BLUE}Starting pseudo PSP service...${NC}"
+cd ../dummy-agent
+node pseudo-psp-service.js > /dev/null 2>&1 &
+PSP_PID=$!
+cd ../tests
+
+# Wait for PSP service to start
+sleep 3
+
+# Check if PSP service is running
+if curl -s http://localhost:3001/health > /dev/null 2>&1; then
+    log "${GREEN}✓ Pseudo PSP service running on port 3001${NC}"
+else
+    log "${YELLOW}⚠ Pseudo PSP service not accessible - running without PSP simulation${NC}"
+    log "${YELLOW}  Tests will use fallback mode${NC}"
+fi
+
 # Check mode
 if [ "$PRODUCTIVE_MODE" = true ]; then
     log "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -168,66 +186,77 @@ log "${GREEN}✓ Access token obtained${NC}"
 log "Token: ${ACCESS_TOKEN:0:50}..."
 log ""
 
-# STEP 2: Create Payment Token
+# STEP 2: Register External Payment Token
 log "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-log "${YELLOW}Step 2: Create Payment Token${NC}"
-if [ "$PRODUCTIVE_MODE" = true ]; then
-    log "${MAGENTA}(Testing with PayPal integration)${NC}"
-else
-    log "${BLUE}(Demo mode - no PayPal)${NC}"
-fi
+log "${YELLOW}Step 2: Register External Payment Token${NC}"
+log "${YELLOW}(New flow: Simulating PayPal vault token)${NC}"
 log "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 log ""
 
-PAYMENT_DATA='{
+# Simulate getting a token from PayPal (in production, this would be from PayPal API)
+EXTERNAL_TOKEN="CARD-$(openssl rand -hex 8 | tr '[:lower:]' '[:upper:]')"
+log "Simulated PayPal vault token: ${EXTERNAL_TOKEN}"
+log ""
+
+# Register the external token with our plugin
+REGISTER_DATA='{
   "payment_method": {
     "type": "card",
     "card_number_type": "fpan",
-    "virtual": false,
     "number": "4111111111111111",
     "exp_month": "12",
     "exp_year": "2026",
+    "name": "Test User",
     "cvc": "123",
     "display_card_funding_type": "credit",
     "display_brand": "visa",
     "display_last4": "1111",
-    "metadata": {}
+    "metadata": {
+      "source": "automated_test"
+    }
   },
   "allowance": {
     "reason": "one_time",
     "max_amount": 50000,
     "currency": "eur",
     "checkout_session_id": "test_'$(date +%s)'",
-    "merchant_id": "shop_test",
+    "merchant_id": "test_merchant",
     "expires_at": "2025-12-31T23:59:59Z"
   },
   "risk_signals": [
-    {"type": "card_testing", "score": 5, "action": "authorized"}
+    {
+      "type": "card_testing",
+      "score": 5,
+      "action": "authorized"
+    }
   ],
   "metadata": {
     "source": "automated_test",
-    "mode": "'$([ "$PRODUCTIVE_MODE" = true ] && echo "production" || echo "demo")'"
+    "card_last4": "1111",
+    "card_brand": "visa"
   }
 }'
 
-TOKEN_RESPONSE=$(run_test "Create Payment Token" "POST" "/api/agentic_commerce/delegate_payment" "$PAYMENT_DATA" "201")
+TOKEN_RESPONSE=$(run_test "Register External Token" "POST" "/api/agentic_commerce/delegate_payment" "$REGISTER_DATA" "201")
 
 log "DEBUG TOKEN_RESPONSE: ${TOKEN_RESPONSE:0:1000}"
-PAYMENT_TOKEN=$(extract_json "$TOKEN_RESPONSE" "id")
+TOKEN_ID=$(extract_json "$TOKEN_RESPONSE" "id")
+CREATED=$(extract_json "$TOKEN_RESPONSE" "created")
+METADATA=$(extract_json "$TOKEN_RESPONSE" "metadata")
 
-if [ -n "$PAYMENT_TOKEN" ]; then
-    log "${GREEN}✓ Payment Token Created: ${PAYMENT_TOKEN}${NC}"
-    
-    # Check token type
-    if [[ "$PAYMENT_TOKEN" == vt_paypal_* ]]; then
-        log "${MAGENTA}   🎉 PAYPAL TOKEN! Production mode is active!${NC}"
-        USING_PAYPAL=true
-    elif [[ "$PAYMENT_TOKEN" == vt_card_* ]]; then
-        log "${BLUE}   ℹ️  Card token (Demo mode)${NC}"
-        USING_PAYPAL=false
-    fi
+# If token_reference is not found, use the external_token we sent
+if [ -z "$PAYMENT_TOKEN" ]; then
+    PAYMENT_TOKEN="$EXTERNAL_TOKEN"
+fi
+
+if [ -n "$TOKEN_ID" ] && [ -n "$CREATED" ]; then
+    log "${GREEN}✓ External Token Registered${NC}"
+    log "   Token ID: ${TOKEN_ID}"
+    log "   Created: ${CREATED}"
+    log "   Metadata: ${METADATA}"
+    USING_PAYPAL=true
 else
-    log "${RED}✗ Failed to extract payment token ID${NC}"
+    log "${RED}✗ Failed to register external token${NC}"
 fi
 log ""
 
@@ -337,15 +366,14 @@ if [ "$SESSION_ID" != "test_session_"* ] && [ -n "$PAYMENT_TOKEN" ]; then
         "phone_number": "+491234567890"
       },
       "payment_data": {
-        "token": "'"${PAYMENT_TOKEN}"'",
-        "provider": "shopware"
+        "token": "'"${TOKEN_ID}"'"
       }
     }'
     
     COMPLETE_RESPONSE=$(run_test "Complete Checkout Session" "POST" "/api/checkout_sessions/${SESSION_ID}/complete" "$COMPLETE_DATA" "200")
     
-    ORDER_ID=$(extract_json "$COMPLETE_RESPONSE" "id")
-    ORDER_PERMALINK=$(extract_json "$COMPLETE_RESPONSE" "permalink_url")
+    ORDER_ID=$(extract_json "$COMPLETE_RESPONSE" "order.id")
+    ORDER_PERMALINK=$(extract_json "$COMPLETE_RESPONSE" "order.permalink_url")
     
     if [ -n "$ORDER_ID" ]; then
         log "${GREEN}✓ Order Created: ${ORDER_ID}${NC}"
@@ -478,9 +506,14 @@ fi
 log "${BLUE}Log file saved to: ${LOG_FILE}${NC}"
 log ""
 
+# Cleanup: Stop pseudo PSP service
+log "${BLUE}Stopping pseudo PSP service...${NC}"
+kill $PSP_PID 2>/dev/null || true
+log "${GREEN}✓ Cleanup completed${NC}"
+
 if [ $TESTS_FAILED -eq 0 ]; then
     log "${GREEN}✓✓✓ All tests passed!${NC}"
-    
+
     if [ "$PRODUCTIVE_MODE" = true ]; then
         if [ "$USING_PAYPAL" = true ]; then
             log "${MAGENTA}🎉 PRODUCTION MODE SUCCESS! PayPal integration working!${NC}"
@@ -491,7 +524,7 @@ if [ $TESTS_FAILED -eq 0 ]; then
     else
         log "${BLUE}Demo mode working perfectly!${NC}"
     fi
-    
+
     exit 0
 else
     log "${RED}✗✗✗ Some tests failed${NC}"

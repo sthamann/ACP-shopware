@@ -88,10 +88,10 @@ echo ""
 echo -e "${YELLOW}[3] Database Tables${NC}"
 
 check "acp_checkout_session table exists" \
-    "docker exec ${CONTAINER_NAME} mysql -u root -proot shopware -e 'DESCRIBE acp_checkout_session' 2>/dev/null"
+    "docker exec ${CONTAINER_NAME} mysql -u root -proot -h 127.0.0.1 shopware -e 'DESCRIBE acp_checkout_session' 2>/dev/null"
 
-check "acp_payment_token table exists" \
-    "docker exec ${CONTAINER_NAME} mysql -u root -proot shopware -e 'DESCRIBE acp_payment_token' 2>/dev/null"
+check "acp_external_token table exists" \
+    "docker exec ${CONTAINER_NAME} mysql -u root -proot -h 127.0.0.1 shopware -e 'DESCRIBE acp_external_token' 2>/dev/null"
 
 echo ""
 
